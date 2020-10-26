@@ -16,6 +16,7 @@
 package io.seata.core.constants;
 
 import io.seata.common.util.StringUtils;
+import io.seata.core.store.db.sql.lock.GBasedbtLockStoreSql;
 
 /**
  * database type
@@ -72,7 +73,12 @@ public enum DBType {
     /**
      * Oceanbase db type.
      */
-    OCEANBASE;
+    OCEANBASE,
+
+    /**
+     * GBase 8s db type.
+     */
+    GBASEDBT;
 
     /**
      * Valueof db type.
