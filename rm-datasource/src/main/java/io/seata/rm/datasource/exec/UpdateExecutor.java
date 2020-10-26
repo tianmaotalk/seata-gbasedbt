@@ -27,6 +27,7 @@ import io.seata.rm.datasource.sql.struct.TableMeta;
 import io.seata.rm.datasource.sql.struct.TableRecords;
 import io.seata.sqlparser.SQLRecognizer;
 import io.seata.sqlparser.SQLUpdateRecognizer;
+import io.seata.sqlparser.util.JdbcConstants;
 import org.apache.commons.lang.StringUtils;
 
 import java.sql.PreparedStatement;

@@ -39,7 +39,9 @@ public final class ColumnUtils {
         /** standard escape */
         STANDARD('"'),
         /** mysql series escape */
-        MYSQL('`')
+        MYSQL('`'),
+
+        GBASEDBT(' ');
         ;
         public final char value;
         Escape(char value) {
@@ -147,6 +149,8 @@ public final class ColumnUtils {
     public static String addEscape(String colName, String dbType) {
         if (isMysqlSeries(dbType)) {
             return addEscape(colName, dbType, ColumnUtils.Escape.MYSQL);
+        } else if (JdbcConstants.GBASEDBT.equalsIgnoreCase(dbType)) {
+            return addEscape(colName, dbType, ColumnUtils.Escape.GBASEDBT);
         }
         return addEscape(colName, dbType, ColumnUtils.Escape.STANDARD);
     }

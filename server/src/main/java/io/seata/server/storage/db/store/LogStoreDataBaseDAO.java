@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.sql.DataSource;
 
+import com.alibaba.druid.util.JdbcConstants;
 import io.seata.common.exception.DataAccessException;
 import io.seata.common.exception.StoreException;
 import io.seata.common.util.IOUtil;
@@ -167,12 +168,17 @@ public class LogStoreDataBaseDAO implements LogStore {
             String paramsPlaceHolder = org.apache.commons.lang.StringUtils.repeat("?", ",", statuses.length);
 
             String sql = LogStoreSqlsFactory.getLogStoreSqls(dbType).getQueryGlobalTransactionSQLByStatus(globalTable, paramsPlaceHolder);
+            if (JdbcConstants.GBASEDBT.equalsIgnoreCase(dbType)) {
+                sql = sql + " limit " + limit;
+            }
             ps = conn.prepareStatement(sql);
             for (int i = 0; i < statuses.length; i++) {
                 int status = statuses[i];
                 ps.setInt(i + 1, status);
             }
-            ps.setInt(statuses.length + 1, limit);
+            if (!JdbcConstants.GBASEDBT.equalsIgnoreCase(dbType)) {
+                ps.setInt(statuses.length + 1, limit);
+            }
             rs = ps.executeQuery();
             while (rs.next()) {
                 ret.add(convertGlobalTransactionDO(rs));

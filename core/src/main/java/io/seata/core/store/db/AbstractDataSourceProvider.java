@@ -227,6 +227,8 @@ public abstract class AbstractDataSourceProvider implements DataSourceProvider, 
     protected String getValidationQuery(DBType dbType) {
         if (DBType.ORACLE.equals(dbType)) {
             return "select sysdate from dual";
+        } else if (DBType.GBASEDBT.equals(dbType)) {
+            return "select 1 from sysmaster:dual";
         } else {
             return "select 1";
         }
