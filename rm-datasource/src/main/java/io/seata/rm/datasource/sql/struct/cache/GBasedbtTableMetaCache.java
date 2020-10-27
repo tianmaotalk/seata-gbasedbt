@@ -24,10 +24,7 @@ import io.seata.rm.datasource.sql.struct.IndexType;
 import io.seata.rm.datasource.sql.struct.TableMeta;
 import io.seata.sqlparser.util.JdbcConstants;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 /**
  * The type Table meta cache.
@@ -42,7 +39,7 @@ public class GBasedbtTableMetaCache extends AbstractTableMetaCache {
         StringBuilder cacheKey = new StringBuilder(resourceId);
         cacheKey.append(".");
 
-        //separate it to schemaName and tableName
+        //separate it to catalog and tableName
         String[] tableNameWithSchema = tableName.split("\\.");
         String defaultTableName = tableNameWithSchema.length > 1 ? tableNameWithSchema[1] : tableNameWithSchema[0];
 
@@ -60,7 +57,9 @@ public class GBasedbtTableMetaCache extends AbstractTableMetaCache {
     @Override
     protected TableMeta fetchSchema(Connection connection, String tableName) throws SQLException {
         try {
-            return resultSetMetaToSchema(connection.getMetaData(), tableName, connection.getCatalog());
+            //TODO get owner for table
+            String owner = null;
+            return resultSetMetaToSchema(connection, tableName, connection.getCatalog(), owner);
         } catch (SQLException sqlEx) {
             throw sqlEx;
         } catch (Exception e) {
@@ -68,28 +67,33 @@ public class GBasedbtTableMetaCache extends AbstractTableMetaCache {
         }
     }
 
-    private TableMeta resultSetMetaToSchema(DatabaseMetaData dbmd, String tableName, String schemaName) throws SQLException {
+    private TableMeta resultSetMetaToSchema(Connection connection, String tableName, String catalog,String owner) throws SQLException {
         TableMeta tm = new TableMeta();
         tm.setTableName(tableName);
+        DatabaseMetaData dbmd=connection.getMetaData();
+        Statement stmt=connection.createStatement();
 //        String[] schemaTable = tableName.split("\\.");
-//        String schemaName = schemaTable.length > 1 ? schemaTable[0] : dbmd.getUserName();
+//        String catalog = schemaTable.length > 1 ? schemaTable[0] : dbmd.getUserName();
 //        tableName = schemaTable.length > 1 ? schemaTable[1] : tableName;
-        if (schemaName.contains("\"")) {
-            schemaName = schemaName.replace("\"", "");
+        if (catalog.contains("\"")) {
+            catalog = catalog.replace("\"", "");
         } else {
-            schemaName = schemaName.toUpperCase();
+            catalog = catalog.toLowerCase();
         }
 
         if (tableName.contains("\"")) {
             tableName = tableName.replace("\"", "");
 
         } else {
-            tableName = tableName.toUpperCase();
+            tableName = tableName.toLowerCase();
         }
+        //无法获取到owner，所以目前不加owner条件
+        String sql="select * from sysindexes i, sysconstraints const, systables t, syscolumns c where i.idxname=const.idxname and c.tabid=t.tabid and t.tabid=i.tabid and t.tabname='"+tableName+"' "
+                +"and (i.part1=c.colno or i.part2=c.colno or i.part3=c.colno or i.part4=c.colno or i.part5=c.colno or i.part6=c.colno or i.part7=c.colno or i.part8=c.colno or i.part9=c.colno or i.part10=c.colno or i.part11=c.colno or i.part12=c.colno or i.part13=c.colno or i.part14=c.colno or i.part15=c.colno or i.part16=c.colno ) order by t.tabid";
 
-        try (ResultSet rsColumns = dbmd.getColumns(schemaName, null, tableName, "%");
-             ResultSet rsIndex = dbmd.getIndexInfo(schemaName, null, tableName, false, true);
-             ResultSet rsPrimary = dbmd.getPrimaryKeys(schemaName, null, tableName)) {
+        try (ResultSet rsColumns = dbmd.getColumns(catalog, owner, tableName, "%");
+             ResultSet rsIndex = stmt.executeQuery(sql);
+        ) {
             while (rsColumns.next()) {
                 ColumnMeta col = new ColumnMeta();
                 col.setTableCat(rsColumns.getString("TABLE_CAT"));
@@ -114,11 +118,11 @@ public class GBasedbtTableMetaCache extends AbstractTableMetaCache {
             }
 
             while (rsIndex.next()) {
-                String indexName = rsIndex.getString("INDEX_NAME");
+                String indexName = rsIndex.getString("idxname");
                 if (StringUtils.isNullOrEmpty(indexName)) {
                     continue;
                 }
-                String colName = rsIndex.getString("COLUMN_NAME");
+                String colName = rsIndex.getString("colname");
                 ColumnMeta col = tm.getAllColumns().get(colName);
                 if (tm.getAllIndexes().containsKey(indexName)) {
                     IndexMeta index = tm.getAllIndexes().get(indexName);
@@ -126,16 +130,18 @@ public class GBasedbtTableMetaCache extends AbstractTableMetaCache {
                 } else {
                     IndexMeta index = new IndexMeta();
                     index.setIndexName(indexName);
-                    index.setNonUnique(rsIndex.getBoolean("NON_UNIQUE"));
-                    index.setIndexQualifier(rsIndex.getString("INDEX_QUALIFIER"));
-                    index.setIndexName(rsIndex.getString("INDEX_NAME"));
-                    index.setType(rsIndex.getShort("TYPE"));
-                    index.setOrdinalPosition(rsIndex.getShort("ORDINAL_POSITION"));
-                    index.setAscOrDesc(rsIndex.getString("ASC_OR_DESC"));
-                    index.setCardinality(rsIndex.getInt("CARDINALITY"));
+                    index.setNonUnique(rsIndex.getString("idxtype").equals("U") ? false : true);
+                    index.setIndexQualifier(null);
+                    index.setIndexName(rsIndex.getString("idxname"));
+                    index.setType((short)3);
+                    index.setOrdinalPosition(0);
+                    index.setAscOrDesc(null);
+                    index.setCardinality(0);
                     index.getValues().add(col);
-                    if (!index.isNonUnique()) {
+                    if (rsIndex.getString("constrtype").equals("U")) {
                         index.setIndextype(IndexType.UNIQUE);
+                    } else if (rsIndex.getString("constrtype").equals("P")) {
+                        index.setIndextype(IndexType.PRIMARY);
                     } else {
                         index.setIndextype(IndexType.NORMAL);
                     }
@@ -144,13 +150,6 @@ public class GBasedbtTableMetaCache extends AbstractTableMetaCache {
                 }
             }
 
-            while (rsPrimary.next()) {
-                String pkIndexName = rsPrimary.getString("PK_NAME");
-                if (tm.getAllIndexes().containsKey(pkIndexName)) {
-                    IndexMeta index = tm.getAllIndexes().get(pkIndexName);
-                    index.setIndextype(IndexType.PRIMARY);
-                }
-            }
             if (tm.getAllIndexes().isEmpty()) {
                 throw new ShouldNeverHappenException(String.format("Could not found any index in the table: %s", tableName));
             }
