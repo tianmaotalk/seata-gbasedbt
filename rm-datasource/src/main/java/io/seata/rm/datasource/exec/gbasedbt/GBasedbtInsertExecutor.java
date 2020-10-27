@@ -135,18 +135,25 @@ public class GBasedbtInsertExecutor extends BaseInsertExecutor implements Sequen
             throw new ShouldNeverHappenException();
         }
 
-        ResultSet genKeys;
+        ResultSet genKeys=null;
         try {
             genKeys = statementProxy.getGeneratedKeys();
-            if (genKeys.getMetaData().getColumnCount() == 0) {
+//            if (genKeys.getMetaData().getColumnCount() == 0) {
+//                // java.sql.SQLException: Generated keys not requested. You need to
+//                // specify Statement.RETURN_GENERATED_KEYS to
+//                // Statement.executeUpdate() or Connection.prepareStatement().
+//                genKeys = statementProxy.getTargetStatement().executeQuery("select dbinfo('sqlca.sqlerrd1')  from dual");
+//            }
+        } catch (SQLException e) {
+            if (genKeys==null||genKeys.getMetaData().getColumnCount() == 0) {
                 // java.sql.SQLException: Generated keys not requested. You need to
                 // specify Statement.RETURN_GENERATED_KEYS to
                 // Statement.executeUpdate() or Connection.prepareStatement().
                 genKeys = statementProxy.getTargetStatement().executeQuery("select dbinfo('sqlca.sqlerrd1')  from dual");
             }
-        } catch (SQLException e) {
-            LOGGER.error("gbasedbt getPkValuesByAuto err:", e);
-            throw e;
+
+//            LOGGER.error("gbasedbt getPkValuesByAuto err:", e);
+//            throw e;
         }
         List<Object> pkValues = new ArrayList<>();
         while (genKeys.next()) {

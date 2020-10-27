@@ -113,6 +113,7 @@ public class GBasedbtTableMetaCache extends AbstractTableMetaCache {
                 col.setCharOctetLength(rsColumns.getInt("CHAR_OCTET_LENGTH"));
                 col.setOrdinalPosition(rsColumns.getInt("ORDINAL_POSITION"));
                 col.setIsNullAble(rsColumns.getString("IS_NULLABLE"));
+                col.setIsAutoincrement(rsColumns.getString("IS_AUTOINCREMENT"));
 
                 tm.getAllColumns().put(col.getColumnName(), col);
             }
