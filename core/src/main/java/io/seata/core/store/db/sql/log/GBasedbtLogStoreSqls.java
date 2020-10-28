@@ -49,7 +49,7 @@ public class GBasedbtLogStoreSqls extends AbstractLogStoreSqls {
             + "  where " + ServerTableColumnsName.GLOBAL_TABLE_STATUS + " in (" + PRAMETER_PLACEHOLD + ")"
             + "  order by " + ServerTableColumnsName.GLOBAL_TABLE_GMT_MODIFIED
             + " ) A"
-            + " where limit <= ?";
+            + "  ";
 
     /**
      * The constant QUERY_GLOBAL_TRANSACTION_FOR_RECOVERY_ORACLE.
@@ -60,7 +60,7 @@ public class GBasedbtLogStoreSqls extends AbstractLogStoreSqls {
             + "  where " + ServerTableColumnsName.GLOBAL_TABLE_STATUS + " in (0, 2, 3, 4, 5, 6, 7, 8, 10 ,12, 14)"
             + "  order by " + ServerTableColumnsName.GLOBAL_TABLE_GMT_MODIFIED
             + " ) A"
-            + " where limit <= ?";
+            + "  ";
 
     /**
      * The constant INSERT_BRANCH_TRANSACTION_ORACLE.
