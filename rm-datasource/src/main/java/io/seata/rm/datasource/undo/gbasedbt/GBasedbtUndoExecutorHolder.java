@@ -39,11 +39,11 @@ public class GBasedbtUndoExecutorHolder implements UndoExecutorHolder {
 
     @Override
     public AbstractUndoExecutor getUpdateExecutor(SQLUndoLog sqlUndoLog) {
-        return new GBasedbtUndoInsertExecutor(sqlUndoLog);
+        return new GBasedbtUndoUpdateExecutor(sqlUndoLog);
     }
 
     @Override
     public AbstractUndoExecutor getDeleteExecutor(SQLUndoLog sqlUndoLog) {
-        return new GBasedbtUndoInsertExecutor(sqlUndoLog);
+        return new GBasedbtUndoDeleteExecutor(sqlUndoLog);
     }
 }
