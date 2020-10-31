@@ -38,8 +38,8 @@ public class GBasedbtUndoLogManager extends AbstractUndoLogManager {
 
 
     private static final String INSERT_UNDO_LOG_SQL = "INSERT INTO " + UNDO_LOG_TABLE_NAME + "\n" +
-            "\t(id,branch_id, xid,context, rollback_info, log_status, log_created, log_modified)\n" +
-            "VALUES (UNDO_LOG_SEQ.nextval,?, ?,?, ?, ?, sysdate, sysdate)";
+            "\t(branch_id, xid,context, rollback_info, log_status, log_created, log_modified)\n" +
+            "VALUES (?, ?,?, ?, ?, sysdate, sysdate)";
 
     private static final String DELETE_UNDO_LOG_BY_CREATE_SQL = "DELETE FROM " + UNDO_LOG_TABLE_NAME +
             " WHERE log_created <= ? and ROWNUM <= ?";
